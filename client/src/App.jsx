@@ -12,8 +12,46 @@ function App() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // Function to render text with clickable links
+  const renderMessageText = (text) => {
+    // Regex to match [text](url) format
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      // Add text before the link
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
+      }
+      // Add the link
+      parts.push(
+        <a
+          key={match.index}
+          href={match[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="message-link"
+        >
+          {match[1]}
+        </a>
+      );
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -29,7 +67,7 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('http://localhost:3000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +103,7 @@ function App() {
           {messages.map((msg, index) => (
             <div key={index} className={`message ${msg.sender} fade-in`}>
               <div className="message-bubble">
-                {msg.text}
+                {renderMessageText(msg.text)}
               </div>
             </div>
           ))}
@@ -76,7 +114,6 @@ function App() {
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
         <div className="chat-input">
           <input
